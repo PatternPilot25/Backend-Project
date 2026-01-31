@@ -10,4 +10,8 @@ app.use(urlencoded({extended:true}));// to parse urlencoded data from incoming r
 app.use(express.json()); // to parse json data from incoming requests
 app.use(cookiesParser())  // to parse cookies from incoming requests or get the users cookies and perform(by server) crud operations on it.
 app.use(express.static('Public')) // to serve static files like images ,css files ,js files publicly
+
+import userRouter from "./routes/user.router.js"
+// user routes that work as a middleware here
+app.use("/api/v1/users",userRouter);
 export default app;
