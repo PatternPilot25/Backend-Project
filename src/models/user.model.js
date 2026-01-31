@@ -1,5 +1,5 @@
 import mongoose, {Schema} from 'mongoose';
-import bycrypt from 'bycrypt';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 const userSchema= new Schema({
        userName:{
@@ -49,12 +49,12 @@ const userSchema= new Schema({
 // middleware for hashing password before saving user document
 userSchema.pre("save", async function(next){    // we cant use arroe function as we know arrow function has no this(keyword) point to current object
    if(!this.isModified("password")) return next();   
-   this.password=bycrypt.hash(this.password,10)
+   this.password=await bcrypt.hash(this.password,10)
    next();
 })
 // added a new method to check password
 userSchema.methods.isPasswordCorrect= async function(password){
-  return await bycrypt.compare(password,this.password) // return a boolean value 
+  return await bcrypt.compare(password,this.password) // return a boolean value 
 }
 // method to generate access token
 userSchema.methods.generateAcessToken=function(){

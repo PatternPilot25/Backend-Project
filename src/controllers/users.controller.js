@@ -1,9 +1,61 @@
 import { asyncHandler } from "../utils/asyncHandler.js"
+import ApiError from "../utils/ApiError.js"
+import { uploadOncloudinary } from "../utils/clodinaryservice.js"
+import {User} from "../models/user.model.js"
+import ApiResponse from "../utils/ApiResponse.js"
 
 // every controller is a middleware but inverse is not true one more thing is controller is used in last step and all the business related logic is written here it  works in db operations also manipulation of db data and sending responseto the client 
 const userRegister=asyncHandler(async(req,res)=>{
-      res.status(200).json({
-        message:"ok"
-      })
+     // get the user data from frontend using req.body if data is sent through body (json or form data)
+       const {userName,email,fullName,password}=req.body
+    //  check the validation of data especially its empty or not
+      if(
+        [userName,email,fullName,password].some((field)=> field?.trim==="")
+      ){
+        throw new ApiError(400,"fill the required field")
+      }
+    //  check if user already exists with same email or username or with another parameter uses index in model with unique true
+   const existeduser= User.findOne({
+      $or:[{userName},{email}]
+    })
+    if(existeduser){ throw new ApiError(409,"User Already exist")}
+    // check for avatar(mandatory) & cover image 
+     //upload the avatar and cover image to local storage using multer middleware which increases the req field withe req.files
+    // check whether the files are present or not in local storage specially avatar as it is mandatory
+    const avatartLocalpath=req.files?.avatar[0]?.path
+    const coverLocalpath= req.files?.coverImage[0]?.path
+    if(!avatartLocalpath){
+       throw new ApiError(400,"avatar file is required")
+    }
+    // upload the avatar and cover image to cloudinary and get the url of uploaded image from cloudinary response
+    // check whether the upload is successful or not in cloudinary
+   const avatarlink= await uploadOncloudinary(avatartLocalpath) // only response comes 
+   const coverlink =await uploadOncloudinary(coverLocalpath)    // only reponse comes
+   if(!avatarlink) throw new ApiError (500,"Error in uploading avatar image")
+
+    
+    // create the user in db with user model and remeber one thing this is mongoose(nosql) so we need to make an object of user model and then save it to db
+    const user= await User.create(
+    {
+      userName:userName.toLowerCase(),
+      fullName,
+      email,
+      avatar:avatarlink.url,
+      coverimage:coverlink?.url || "",
+      password
+
+    }
+   )
+    // check whether the user is created successfully or not in db
+   const createdUser= await User.findById(user._id).select(
+      "-password -refreshToken"
+    )
+    if(!createdUser) throw new ApiError(500,"Error in creating user")
+ return    res.status(201).json(
+  new ApiResponse(200,createdUser,"User successfully registered")
+  )
+
+    // if users created send the response except the password & refresh token
+
 })
 export {userRegister};
