@@ -10,12 +10,12 @@ const userRegister=asyncHandler(async(req,res)=>{
        const {userName,email,fullName,password}=req.body
     //  check the validation of data especially its empty or not
       if(
-        [userName,email,fullName,password].some((field)=> field?.trim==="")
+        [userName,email,fullName,password].some((field)=> field?.trim()==="") // field => !field || field.trim() === ""
       ){
         throw new ApiError(400,"fill the required field")
       }
     //  check if user already exists with same email or username or with another parameter uses index in model with unique true
-   const existeduser= User.findOne({
+   const existeduser= await User.findOne({
       $or:[{userName},{email}]
     })
     if(existeduser){ throw new ApiError(409,"User Already exist")}
@@ -23,7 +23,11 @@ const userRegister=asyncHandler(async(req,res)=>{
      //upload the avatar and cover image to local storage using multer middleware which increases the req field withe req.files
     // check whether the files are present or not in local storage specially avatar as it is mandatory
     const avatartLocalpath=req.files?.avatar[0]?.path
-    const coverLocalpath= req.files?.coverImage[0]?.path
+    let coverLocalpath;
+     if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
+      const coverLocalpath= req.files?.coverImage[0].path
+     }
+    
     if(!avatartLocalpath){
        throw new ApiError(400,"avatar file is required")
     }
