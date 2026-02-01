@@ -8,6 +8,7 @@ import ApiResponse from "../utils/ApiResponse.js"
 const userRegister=asyncHandler(async(req,res)=>{
      // get the user data from frontend using req.body if data is sent through body (json or form data)
        const {userName,email,fullName,password}=req.body
+     
     //  check the validation of data especially its empty or not
       if(
         [userName,email,fullName,password].some((field)=> field?.trim()==="") // field => !field || field.trim() === ""
@@ -16,18 +17,18 @@ const userRegister=asyncHandler(async(req,res)=>{
       }
     //  check if user already exists with same email or username or with another parameter uses index in model with unique true
    const existeduser= await User.findOne({
-      $or:[{userName},{email}]
+      $or:[{ userName },{ email }]
     })
     if(existeduser){ throw new ApiError(409,"User Already exist")}
     // check for avatar(mandatory) & cover image 
      //upload the avatar and cover image to local storage using multer middleware which increases the req field withe req.files
     // check whether the files are present or not in local storage specially avatar as it is mandatory
+    // req.files is an object that contains arrays of files (avatar & cover image) these arrays contains objects of file details at index 0 & then this [0] index contains path property which contains the local path of uploaded file
     const avatartLocalpath=req.files?.avatar[0]?.path
     let coverLocalpath;
      if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0){
-      const coverLocalpath= req.files?.coverImage[0].path
+      coverLocalpath= req.files.coverImage[0].path
      }
-    
     if(!avatartLocalpath){
        throw new ApiError(400,"avatar file is required")
     }
@@ -51,15 +52,16 @@ const userRegister=asyncHandler(async(req,res)=>{
     }
    )
     // check whether the user is created successfully or not in db
+  // if users created send the response except the password & refresh token
    const createdUser= await User.findById(user._id).select(
       "-password -refreshToken"
     )
     if(!createdUser) throw new ApiError(500,"Error in creating user")
  return    res.status(201).json(
-  new ApiResponse(200,createdUser,"User successfully registered")
+  new ApiResponse(201,createdUser,"User successfully registered")
   )
 
-    // if users created send the response except the password & refresh token
+    
 
 })
 export {userRegister};

@@ -6,6 +6,7 @@ const router=Router();
 router.route("/registration").post(
     // multer middleware to upload multiple files avatar & cover image && this will increase the req.files field
     upload.fields(
+        [
         {
             name:"avatar",
             maxCount:1
@@ -14,6 +15,6 @@ router.route("/registration").post(
             name:"coverImage",
             maxCount:1
         }
-    )
-    ,userRegister);
+    ]),
+    userRegister);
 export default router;

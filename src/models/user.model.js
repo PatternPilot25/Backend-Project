@@ -47,8 +47,8 @@ const userSchema= new Schema({
        ]
 },{timestamps:true})
 // middleware for hashing password before saving user document
-userSchema.pre("save", async function(next){    // we cant use arroe function as we know arrow function has no this(keyword) point to current object
-   if(!this.isModified("password")) return next();   
+userSchema.pre("save", async function(next){    // we cant use arrow function as we know arrow function has no this(keyword) point to current object
+   if(!this.isModified("password"))  return next();   
    this.password=await bcrypt.hash(this.password,10)
    next();
 })
