@@ -3,7 +3,19 @@ import ApiError from "../utils/ApiError.js"
 import { uploadOncloudinary } from "../utils/cloudinaryservice.js"
 import {User} from "../models/user.model.js"
 import ApiResponse from "../utils/ApiResponse.js"
-import mongoose from "mongoose"
+const generateAccessandRefreshtoken=async(userid)=>{
+    try {
+     const user= User.findById(userid)
+         const accesstoken= user.generateAccessToken();
+         const refreshtoken=user.generateRefreshToken();
+         user.refreshToken=refreshtoken;
+        await user.save({validateBeforeSave:false})   // every time while saving user document password will be hashed so to avoid that we set validateBeforeSave to false 
+      return {accesstoken,refreshtoken}                                   // we are not validatebeforesave off because of just pre hook of password hashing actually whenever we save user document then the mongoose will check the validation of all fields according to schema so to avoid that we set validateBeforeSave to false we say dont worry about validation just save it
+    } catch (error) {
+      throw ApiError(500,"something went wrong while generating refresh & access token")
+      
+    }
+}
 // every controller is a middleware but inverse is not true one more thing is controller is used in last step and all the business related logic is written here it  works in db operations also manipulation of db data and sending responseto the client 
 const userRegister=asyncHandler(async(req,res)=>{
     
@@ -70,7 +82,53 @@ const userRegister=asyncHandler(async(req,res)=>{
   new ApiResponse(201,createdUser,"User successfully registered")
   )
 
-    
 
 })
-export {userRegister};
+const loginUser=asyncHandler(async(req,res)=>{
+  //username or email is required
+  const {userName, email, password}= req.body
+  //check that username or email exist or not 
+  if(!userName && !email) {
+    throw new ApiError(400, " username or email required");
+  }
+  const user=User.findOne({
+    $or: [{userName},{email}]
+   })
+   if(!user) {
+    throw new  ApiError(404,"username or password is incorrect")
+   }
+  // check password
+     const validUser= user.isPasswordCorrect(password);
+  // check password is correct 
+  if(!validUser) {
+    throw new ApiError(401,"Invalid user credentials")
+  }
+  // work on refreshtoken & access token set the refresh token to the user 
+  const {accessToken,refreshToken}= await generateAccessandRefreshtoken(user._id);
+  const loggedinuser=await User.findById(user._id).select(
+    "-password -refreshToken"
+  )
+  // send the access token as the response 
+  //Cookies are set in responses, stored by the browser, sent automatically on future requests, and read by cookie-parser into req.cookies.means now res.cookie is just for browser to tell them store the cookie & this send the set-cookie header (res.cookie)
+   const options={  // options are used so that front end cant modify it only server can modify
+    httpOnly:true,
+    secure:true
+   }
+  return  res.status(200)
+   .cookie("accessToken",accessToken,options)
+   .cookie("refreshToken",refreshToken,options)  // now res.cookie is send to browser whenever a new request nowonboards hit the cookie-parser read that cookie header & store in req.cookie so that middleware can use it . it can happens only when once the cookie is set
+   .json(
+    new ApiResponse(
+      200,
+      {
+       user: loggedinuser,accessToken,refreshToken
+      },
+      "user logged in successfully"
+    )
+   ) 
+   // console that user logged in
+
+})
+export {userRegister,
+  loginUser
+};
