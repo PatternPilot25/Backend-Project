@@ -2,13 +2,15 @@ class ApiError extends Error{
     constructor(
         statusCode,
         message="Something went wrong",
-        stack="", // stack trace : gives info about where the error occurred
-        errors=[]
+        errors = [] , // stack trace : gives info about where the error occurred
+        stack=""
 
     ){
         super(message) // calling parent class constructor
         // setting the new properties
-        this.statusCode = statusCode   
+        this.statusCode = statusCode  
+        this.data=null 
+        this.message=message  
         this.success=false 
         this.errors = errors
         if(stack){

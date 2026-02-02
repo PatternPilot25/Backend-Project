@@ -1,6 +1,7 @@
 import mongoose, {Schema} from 'mongoose';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+
 const userSchema= new Schema({
        userName:{
           type:String,
@@ -47,17 +48,22 @@ const userSchema= new Schema({
        ]
 },{timestamps:true})
 // middleware for hashing password before saving user document
-userSchema.pre("save", async function(next){    // we cant use arrow function as we know arrow function has no this(keyword) point to current object
-   if(!this.isModified("password"))  return next();   
+// userSchema.pre("save", async function(next){    // we cant use arrow function as we know arrow function has no this(keyword) point to current object
+//    if(!this.isModified("password"))  return next();   
+//    this.password=await bcrypt.hash(this.password,10)
+//    return next();        // If your middleware function is async, NEVER use next() always remember that in async/await it return promises which tell i am done & again calling next will tell u i am done again & the mongoose got confuse for that reason we should not use next() in async function
+// })     // u are saying two times that u are done 
+userSchema.pre("save", async function(){    // we cant use arrow function as we know arrow function has no this(keyword) point to current object
+   if(!this.isModified("password"))  return   
    this.password=await bcrypt.hash(this.password,10)
-   next();
+   return 
 })
 // added a new method to check password
-userSchema.methods.isPasswordCorrect= async function(password){
+userSchema.methods.isPasswordCorrect= async function(password){ 
   return await bcrypt.compare(password,this.password) // return a boolean value 
 }
 // method to generate access token
-userSchema.methods.generateAcessToken=function(){
+userSchema.methods.generateAccessToken=function(){
  return  jwt.sign(
       { 
          _id:this._id,
@@ -83,4 +89,4 @@ userSchema.methods.generateRefreshToken= function(){
       }
      )
 }
-export const User= mongoose.model("User",userSchema);
+export const User= mongoose.model("User",userSchema)

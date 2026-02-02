@@ -1,5 +1,5 @@
-import {v2 as cloudinary} from 'cloudinary'
-import fs from 'fs'
+import {v2 as cloudinary} from "cloudinary"
+import fs from "fs"
 
 cloudinary.config(
     {
@@ -8,7 +8,7 @@ cloudinary.config(
         api_secret: process.env.CLOUDINARY_CLOUD_SECRET
     }
 )
-const uploadOncloudinary= async function(localfilepath){
+const uploadOncloudinary= async (localfilepath)=>{
     try {
         if(!localfilepath) return null
     const response=    await cloudinary.uploader.upload(localfilepath,{
