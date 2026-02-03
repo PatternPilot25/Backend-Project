@@ -3,16 +3,17 @@ import ApiError from "../utils/ApiError.js"
 import { uploadOncloudinary } from "../utils/cloudinaryservice.js"
 import {User} from "../models/user.model.js"
 import ApiResponse from "../utils/ApiResponse.js"
+
 const generateAccessandRefreshtoken=async(userid)=>{
     try {
-     const user= User.findById(userid)
-         const accesstoken= user.generateAccessToken();
+     const user= await User.findById(userid)
+         const accesstoken=  user.generateAccessToken(); 
          const refreshtoken=user.generateRefreshToken();
          user.refreshToken=refreshtoken;
         await user.save({validateBeforeSave:false})   // every time while saving user document password will be hashed so to avoid that we set validateBeforeSave to false 
       return {accesstoken,refreshtoken}                                   // we are not validatebeforesave off because of just pre hook of password hashing actually whenever we save user document then the mongoose will check the validation of all fields according to schema so to avoid that we set validateBeforeSave to false we say dont worry about validation just save it
     } catch (error) {
-      throw ApiError(500,"something went wrong while generating refresh & access token")
+      throw new  ApiError(500,"something went wrong while generating refresh & access token")
       
     }
 }
@@ -91,14 +92,14 @@ const loginUser=asyncHandler(async(req,res)=>{
   if(!userName && !email) {
     throw new ApiError(400, " username or email required");
   }
-  const user=User.findOne({
+  const user=await User.findOne({
     $or: [{userName},{email}]
    })
    if(!user) {
     throw new  ApiError(404,"username or password is incorrect")
    }
   // check password
-     const validUser= user.isPasswordCorrect(password);
+     const validUser= await user.isPasswordCorrect(password);
   // check password is correct 
   if(!validUser) {
     throw new ApiError(401,"Invalid user credentials")
@@ -129,6 +130,7 @@ const loginUser=asyncHandler(async(req,res)=>{
    // console that user logged in
 
 })
+
 export {userRegister,
   loginUser
 };
