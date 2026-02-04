@@ -132,7 +132,7 @@ const loginUser=asyncHandler(async(req,res)=>{
 })
 const logOutUser= asyncHandler(async(req,res)=>{
   //check whether the user is authorized or not so we use the auth middleware before this logout controller -> used verifyjwt middleware
-    const user= User.findByIdAndUpdate(req.user._id,
+    const user=await User.findByIdAndUpdate(req.user._id,
       {// remove the refresh token from the db
           $unset:{
             refreshToken:1 // unset is used so that refresh token is  removed from the user document in db completely .
