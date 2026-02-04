@@ -117,7 +117,7 @@ const loginUser=asyncHandler(async(req,res)=>{
    }
   return  res.status(200)
    .cookie("accessToken",accessToken,options)
-   .cookie("refreshToken",refreshToken,options)  // now res.cookie is send to browser whenever a new request nowonboards hit the cookie-parser read that cookie header & store in req.cookie so that middleware can use it . it can happens only when once the cookie is set
+   .cookie("refreshToken",refreshToken,options)  // now res.cookie(cookie) is send to browser whenever a new request nowonboards hit the cookie-parser read that cookie header & store in req.cookie so that middleware can use it . it can happens only when once the cookie is set
    .json(
     new ApiResponse(
       200,
@@ -130,7 +130,30 @@ const loginUser=asyncHandler(async(req,res)=>{
    // console that user logged in
 
 })
-
+const logOutUser= asyncHandler(async(req,res)=>{
+  //check whether the user is authorized or not so we use the auth middleware before this logout controller -> used verifyjwt middleware
+    const user= User.findByIdAndUpdate(req.user._id,
+      {// remove the refresh token from the db
+          $unset:{
+            refreshToken:1 // unset is used so that refresh token is  removed from the user document in db completely .
+          }
+      },
+      {
+        new:true
+      }
+    )
+   const options={
+    httpOnly:true,
+    secure:true
+   }
+  // remove the refresh & access token cookies from the browser
+  return res.status(200)
+  .clearCookie("accessToken",options)
+  .clearCookie("refreshToken",options).json(
+    new ApiResponse(200,{},"user logged out successfully")
+  )
+})
 export {userRegister,
-  loginUser
+  loginUser,
+  logOutUser
 };
