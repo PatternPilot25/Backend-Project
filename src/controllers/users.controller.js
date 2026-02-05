@@ -5,6 +5,7 @@ import {User} from "../models/user.model.js"
 import ApiResponse from "../utils/ApiResponse.js"
 
 const generateAccessandRefreshtoken=async(userId)=>{
+  console.log("generating access and refresh token for user id:",userId)
     try {
      const user= await User.findById(userId)
          const accessToken=  user.generateAccessToken(); 
@@ -113,6 +114,7 @@ const loginUser=asyncHandler(async(req,res)=>{
     httpOnly:true,
     secure:true
    }
+   console.log("user logged in successfully:")
   return  res.status(200)
    .cookie("accessToken",accessToken,options)
    .cookie("refreshToken",refreshToken,options)  // now res.cookie(cookie) is send to browser whenever a new request nowonboards hit the cookie-parser read that cookie header & store in req.cookie so that middleware can use it . it can happens only when once the cookie is set
@@ -120,7 +122,7 @@ const loginUser=asyncHandler(async(req,res)=>{
     new ApiResponse(
       200,
       {
-       user: loggedInuser,accessToken,refreshToken
+       user: loggedInuser, accessToken , refreshToken
       },
       "user logged in successfully"
     )
@@ -130,7 +132,7 @@ const loginUser=asyncHandler(async(req,res)=>{
 })
 const logOutUser= asyncHandler(async(req,res)=>{
   //check whether the user is authorized or not so we use the auth middleware before this logout controller -> used verifyjwt middleware
-
+console.log("logging out user:",req.user._id)
   const user=await User.findByIdAndUpdate(req.user._id,
       {// remove the refresh token from the db
           $unset:{

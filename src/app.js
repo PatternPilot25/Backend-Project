@@ -1,5 +1,5 @@
 import express from 'express';
-import cookiesParser from "cookie-parser";
+import cookieParser from "cookie-parser";
 import cors from 'cors';
 const app= express();
 app.use(cors({
@@ -9,7 +9,7 @@ app.use(cors({
 app.use(express.json({limit:"16kb"}));// to parse json data from incoming requests
 app.use(express.urlencoded({extended:true,limit:"16kb"}));// to parse urlencoded data from incoming requests
  
-app.use(cookiesParser())  // to parse cookies from incoming requests or get the users cookies and perform(by server) crud operations on it.
+app.use(cookieParser())  // to parse cookies from incoming requests or get the users cookies and perform(by server) crud operations on it.
 app.use(express.static("public")) // to serve static files like images ,css files ,js files publicly
 
 import userRouter from "./routes/user.router.js"
