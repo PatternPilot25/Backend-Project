@@ -2,11 +2,10 @@ import ApiError from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import jwt from "jsonwebtoken";
 import {User} from "../models/user.model.js";
-export const verifyJwt=asyncHandler(async(req,_,next)=>{
-        
-   
+export const verifyJwt = asyncHandler(async(req,_,next)=>{
+  console.log("cookies in auth middleware:",req.cookies)
    try {
-      const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
+      const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","");
          
       if(!token) {
           throw new ApiError(401,"unauthorized request");
@@ -19,10 +18,10 @@ export const verifyJwt=asyncHandler(async(req,_,next)=>{
        throw new ApiError(401,"Invalid Access Token")
      }
      req.user=user; // attach the user to the request object so that next middleware or controller can use it
-    console.log("decoded token in auth middleware:",decodedToken)
+    
      next();  
    } catch (error) {
-     throw new ApiError(401,"Invalid or Expired Access Token")
+     throw new ApiError(401,error?.message ||"Invalid or Expired Access Token")
    } 
 })
 // jwt.verify() rejects expired tokens; if (!user) protects against valid tokens belonging to deleted or invalid users.

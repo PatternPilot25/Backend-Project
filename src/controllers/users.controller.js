@@ -4,15 +4,14 @@ import { uploadOncloudinary } from "../utils/cloudinaryservice.js"
 import {User} from "../models/user.model.js"
 import ApiResponse from "../utils/ApiResponse.js"
 
-const generateAccessandRefreshtoken=async(userid)=>{
+const generateAccessandRefreshtoken=async(userId)=>{
     try {
-     const user= await User.findById(userid)
-         const accesstoken=  user.generateAccessToken(); 
-         const refreshtoken= user.generateRefreshToken();
-         user.refreshToken=refreshtoken;
+     const user= await User.findById(userId)
+         const accessToken=  user.generateAccessToken(); 
+         const refreshToken= user.generateRefreshToken();
+         user.refreshToken = refreshToken;
         await user.save({validateBeforeSave:false})   // every time while saving user document password will be hashed so to avoid that we set validateBeforeSave to false 
-      console.log("generated access & refresh token")
-        return {accesstoken,refreshtoken}                                   // we are not validatebeforesave off because of just pre hook of password hashing actually whenever we save user document then the mongoose will check the validation of all fields according to schema so to avoid that we set validateBeforeSave to false we say dont worry about validation just save it
+        return {accessToken,refreshToken}                                   // we are not validatebeforesave off because of just pre hook of password hashing actually whenever we save user document then the mongoose will check the validation of all fields according to schema so to avoid that we set validateBeforeSave to false we say dont worry about validation just save it
     } catch (error) {
       throw new  ApiError(500,"something went wrong while generating refresh & access token")
       
@@ -23,8 +22,6 @@ const userRegister=asyncHandler(async(req,res)=>{
     
   // get the user data from frontend using req.body if data is sent through body (json or form data)
        const {userName, email, fullName, password } = req.body
-       console.log(req.body)
-       console.log(req.files)
     //  check the validation of data especially its empty or not
       if(
         [userName,email,fullName,password].some((field)=> field?.trim()==="") // field => !field || field.trim() === ""
@@ -89,7 +86,6 @@ const userRegister=asyncHandler(async(req,res)=>{
 const loginUser=asyncHandler(async(req,res)=>{
   //username or email is required
   const {userName, email, password}= req.body
-  console.log("login request body:",req.body)
   //check that username or email exist or not 
   if(!userName && !email) {
     throw new ApiError(400, " username or email required");
@@ -108,10 +104,9 @@ const loginUser=asyncHandler(async(req,res)=>{
   }
   // work on refreshtoken & access token set the refresh token to the user 
   const {accessToken,refreshToken}= await generateAccessandRefreshtoken(user._id);
-  const loggedinuser=await User.findById(user._id).select(
+  const loggedInuser=await User.findById(user._id).select(
     "-password -refreshToken"
   )
-  console.log("loggedinuser:", loggedinuser)
   // send the access token as the response 
   //Cookies are set in responses, stored by the browser, sent automatically on future requests, and read by cookie-parser into req.cookies.means now res.cookie is just for browser to tell them store the cookie & this send the set-cookie header (res.cookie)
    const options={  // options are used so that front end cant modify it only server can modify
@@ -125,7 +120,7 @@ const loginUser=asyncHandler(async(req,res)=>{
     new ApiResponse(
       200,
       {
-       user: loggedinuser,accessToken,refreshToken
+       user: loggedInuser,accessToken,refreshToken
       },
       "user logged in successfully"
     )
@@ -135,7 +130,7 @@ const loginUser=asyncHandler(async(req,res)=>{
 })
 const logOutUser= asyncHandler(async(req,res)=>{
   //check whether the user is authorized or not so we use the auth middleware before this logout controller -> used verifyjwt middleware
-  console.log("user in logout controller:",req.user) 
+
   const user=await User.findByIdAndUpdate(req.user._id,
       {// remove the refresh token from the db
           $unset:{
