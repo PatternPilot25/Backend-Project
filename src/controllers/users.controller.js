@@ -182,8 +182,90 @@ const refreshAccessToken=asyncHandler(async(req,res)=>{
             throw new ApiError(401,error?.message || "Invalid refresh token ")
           }
 })
+const changeCurrentPassword=asyncHandler(async(req,res)=>{
+      const {oldpassword,newpassword,conformpassword}=req.body
+      if(newpassword !== conformpassword){
+        throw new ApiError(400,"new password and confirm password does not match")
+      }
+      // the person is authorized or not so we use the auth middleware before this change password controller
+      const user= await User.findById(req.user?._id)
+      const passwordValidity=await user.isPasswordCorrect(oldpassword);
+      if(!passwordValidity){
+        throw new ApiError(401,"Incorrect password")
+      }
+      user.password=newpassword 
+     await  user.save({validateBeforeSave:false});
+     return res.status(200).json(
+      new ApiResponse(200,{},"password is successfully updated")
+     )
+})
+const getCurrentUser=asyncHandler(async(req,res)=>{
+  return res.status(200).json(
+    new ApiResponse(200,
+       req.user
+  ,"user fetched successfully")
+  )
+})
+// const updateAccountDetails=asyncHandler(async(req,res)=>{
+//   const {fullName,email}= req.body
+//   if((!fullName ) && (!email)){
+//     throw new ApiError(400,"atleast fullName or email required")
+//   }
+//            const user=    await User.findByIdAndUpdate(req.user?._id,
+//                   {  $set:{
+//                     fullName,
+//                     email
+//                   }
+//                   },{
+//                     new:true
+//                   }
+//                 ).select("-password")
+
+//                 return res.status(200).json(
+//                   new ApiResponse(200,user,"Account updated successfully")
+//                 )
+// })
+const updateAccountDetails=asyncHandler(async(req,res)=>{
+  const {fullName,email}= req.body
+    const toCompute={};
+    const user= req.user
+    if(fullName?.trim()){
+      const usedName=fullName.trim();
+          if(usedName !== user.fullName){
+            toCompute.fullName=usedName
+          }
+    }     
+    if(email?.trim()){
+      const usedEmail=email.trim()
+          if(usedEmail !== user.email){
+            toCompute.email=usedEmail
+          }
+    }              
+    if(Object.keys(toCompute).length===0){
+      throw new ApiError(400,"atleast fullName or email required or both should be different from existing one")
+    }
+  const updatedUser=await  User.findByIdAndUpdate(user._id,{
+      $set:toCompute  // if any or both are present then it will update the presented field 
+    }
+  ,{
+        new:true
+      }).select("-password -refreshToken")
+
+      return res.status(200).json(
+        new ApiResponse(200,updatedUser,"User information updated Successfully" )
+      )
+}) 
 export {userRegister,
   loginUser,
   logOutUser,
-  refreshAccessToken
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetails
 };
+// .save() tracks and processes changes; findByIdAndUpdate() blindly updates what you tell it.
+// when we use findByIdAndUpdate() it will not trigger the pre save middleware for hashing password so we have to use save() method to trigger that pre save middleware for hashing password
+//mongoose(when u say user.find()) first take all the original field values of the document & mark all of them as unmodified when it sees assignment like user.password=newpassword it will mark password field as modified and when we call save() method it will check which field is modified and then trigger the pre save middleware for that modified field only in our case it is password field so it will trigger the pre save middleware for hashing password but if we use findByIdAndUpdate() it will not track any changes and it will not trigger the pre save middleware for hashing password so we have to use save() method to trigger that pre save middleware for hashing password
+// if we want to just update something we need findbyid & update to just update that field 
+// findById() loads a document into Mongoose’s change-tracking system.
+//findByIdAndUpdate() does NOT load a document at all.
