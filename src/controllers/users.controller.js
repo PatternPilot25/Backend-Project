@@ -321,6 +321,70 @@ const updateUserAvatar= asyncHandler(async(req,res)=>{
       new ApiResponse(200,user,"avatar updated successfully")
     )
 })
+const getUserChannelProfile= asyncHandler(async(req,res)=>{
+ const {userName} =req.params
+ if(!userName?.trim()){ // if userName is not present throw an error or if userName present then trim it and if after trimming it is empty then also throw an error
+  throw new ApiError(400,"Invalid userName")
+ }
+const channel= await User.aggregate([
+  {
+    $match:{
+      userName:userName 
+    }
+ },
+ {   // the lookup stage is used for left join
+  // the lookup add tempory array field in the user document with name subscribers which contains the list of all subscribers of that channel and also add another temporary array field with name subscribedTo which contains the list of all channels to which that user is subscribed to
+  // those array field contains the list of all subscribers of that channel in form of the subscription model document(subscriber and channel like an object ) as the matching of localField and foreign field 
+  $lookup:{
+    from:"subscriptions",
+    localField:"_id",
+    foreignField:"channel",
+    as:"subscribers"
+  }
+ },{
+  $lookup:{
+    from:"subscriptions",
+    localField:"_id",
+    foreignField:"subscriber",
+    as:"subscribedTo"
+  }
+ },
+{
+  $addFields:{ // add fields to the user document 
+    subscribersCount:{
+         $size:"$subscribers"
+    },
+    channelSubscribedToCount:{
+      $size:"$subscribedTo"
+    },
+    isSubscribed:{ // check whether the logged in user is subscribed to that channel or not
+      $cond:{
+        if: {$in:[(req.user?._id),"$subscribers.subscriber"]},
+        then:true,
+        else:false
+      }
+    }
+  }
+},
+{
+  $project:{   // project is used to select the required fields from the user document .
+    userName:1,
+    fullName:1,
+    subscribersCount:1,
+    channelSubscribedToCount:1,
+    avatar:1,
+    coverImage:1,
+    isSubscribed:1
+  }
+}
+
+])  // the aggregate resultant returns an array of user document with all the field mentioned in project stage
+if(!channel?.length){ // if the channel is not present in db then throw an error && if channel is present but the length of channel array is 0 then also throw an error because it means that there is no channel with that userName
+  throw new ApiError(404,"channel doesnt exist")
+}
+return res.status(200).json(new ApiResponse(200,channel[0],"User channel fetched succesfully"))
+// the aggregate resultant returns an array which means channel may contain more than one document but in our case it will contain only one document because userName is unique in our user model so we can access that channel document with index 0 of channel array
+})
 export {userRegister,
   loginUser,
   logOutUser,
