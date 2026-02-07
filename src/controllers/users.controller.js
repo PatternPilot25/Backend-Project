@@ -393,7 +393,8 @@ export {userRegister,
   getCurrentUser,
   updateAccountDetails,
   updateUserAvatar,
-  updateUserCover
+  updateUserCover,
+  getUserChannelProfile
 };
 // .save() tracks and processes changes; findByIdAndUpdate() blindly updates what you tell it.
 // when we use findByIdAndUpdate() it will not trigger the pre save middleware for hashing password so we have to use save() method to trigger that pre save middleware for hashing password
