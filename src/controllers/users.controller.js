@@ -4,6 +4,7 @@ import { uploadOncloudinary } from "../utils/cloudinaryservice.js"
 import {User} from "../models/user.model.js"
 import ApiResponse from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
+import {v2 as cloudinary} from "cloudinary"
 const generateAccessandRefreshtoken=async(userId)=>{
   console.log("generating access and refresh token for user id:",userId)
     try {
@@ -18,7 +19,13 @@ const generateAccessandRefreshtoken=async(userId)=>{
       
     }
 }
-// every controller is a middleware but inverse is not true one more thing is controller is used in last step and all the business related logic is written here it  works in db operations also manipulation of db data and sending responseto the client 
+const deleteimagesfromcloudinary=async(dummyLink)=>{
+const public_Id=dummyLink?.split("/").slice(-1)[0].split(".")[0];
+await cloudinary.uploader.destroy(public_Id,{
+  resources_rype:"auto"
+})
+       }
+ // every controller is a middleware but inverse is not true one more thing is controller is used in last step and all the business related logic is written here it  works in db operations also manipulation of db data and sending responseto the client 
 const userRegister=asyncHandler(async(req,res)=>{
     
   // get the user data from frontend using req.body if data is sent through body (json or form data)
@@ -255,13 +262,74 @@ const updateAccountDetails=asyncHandler(async(req,res)=>{
         new ApiResponse(200,updatedUser,"User information updated Successfully" )
       )
 }) 
+const updateUserCover= asyncHandler(async(req,res)=>{
+  const localcoverLink=req.file?.path
+  console(req.file)
+  if(!localcoverLink) {
+    throw new ApiError(401,"cover file is required")
+  }
+      // now we need also to delete the previous avatar from cloudinary 
+  const dummyUser=  User.findById(req.user._id)
+
+  const dummyLink= dummyUser.avatar
+   const cloudLink= await uploadOncloudinary(localcoverLink)
+   if(!cloudLink.url){
+    throw new ApiError(500,"unable to upload on cloudinary")
+   }
+
+   const user= await User.findByIdAndUpdate(req.user._id,{
+      $set:{
+        coverimage:cloudLink.url 
+      }
+     },
+    {
+      new :true
+    }).select("-password refreshToken")
+     if(dummyLink){
+    deleteimagesfromcloudinary(dummyLink)
+     }
+    return res.status(200).
+    json(
+      new ApiResponse(200,user,"cover image  updated successfully")
+    )
+})
+const updateUserAvatar= asyncHandler(async(req,res)=>{
+  const localavatarLink=req.file?.path
+  if(!localavatarLink) {
+    throw new ApiError(401,"avatar file is required")
+  }
+      // now we need also to delete the previous avatar from cloudinary 
+  const dummyUser=  User.findById(req.user._id)
+  const dummyLink= dummyUser.avatar
+   const cloudLink= await uploadOncloudinary(localavatarLink)
+   if(!cloudLink.url){
+    throw new ApiError(500,"unable to upload on cloudinary")
+   }
+
+   const user= await User.findByIdAndUpdate(req.user._id,{
+      $set:{
+        avatar:cloudLink.url 
+      }
+     },
+    {
+      new :true
+    }).select("-password refreshToken")
+   
+    deleteimagesfromcloudinary(dummyLink)
+    return res.status(200).
+    json(
+      new ApiResponse(200,user,"avatar updated successfully")
+    )
+})
 export {userRegister,
   loginUser,
   logOutUser,
   refreshAccessToken,
   changeCurrentPassword,
   getCurrentUser,
-  updateAccountDetails
+  updateAccountDetails,
+  updateUserAvatar,
+  updateUserCover
 };
 // .save() tracks and processes changes; findByIdAndUpdate() blindly updates what you tell it.
 // when we use findByIdAndUpdate() it will not trigger the pre save middleware for hashing password so we have to use save() method to trigger that pre save middleware for hashing password
